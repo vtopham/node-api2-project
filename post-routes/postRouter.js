@@ -58,12 +58,14 @@ router.get('/:id', (req, res) => {
 
 //Updates the post with the specified id using data from the request body. Returns the modified document, NOT the original.
 router.put('/:id', (req, res) => {
-    console.log(typeof(req.params.id))
+    console.log(req.params.id)
     //If the request body is missing the title or contents property
     if (!req.body.title || !req.body.contents) {
         res.status(400).json({ errorMessage: "Please provide title and contents for the post." })
+        return;
     }
-    db.findById(parseInt(req.params.id)).then( post => {
+    db.findById(req.params.id).then( post => {
+        
         if (post.length === 0) {
             //If the post with the specified id is not found
             res.status(404).json({ message: "The post with the specified ID does not exist." })
@@ -76,15 +78,16 @@ router.put('/:id', (req, res) => {
             updated_at: new Date()
         }
 
-        update(post.id, newPost).then(count => {
+        db.update(post.id, newPost).then(count => {
+            console.log("we're in the update")
             res.status(200).json({data: newPost})
         }).catch(_ => {
             //If there's an error when updating the post
             res.status(500).json({ error: "The post information could not be modified." })
         })
     }
-    ).catch(_ => {
-        res.status(500).json({message: "error finding by id"})
+    ).catch( (error)=> {
+        res.status(500).json({message: "error finding by id", error: error})
     })
 
 })
@@ -101,7 +104,7 @@ router.get('/:id/comments', (req, res) => {
 })
 
 
-//TODO: FIX Creates a comment for the post with the specified id using information sent inside of the request body.
+//Creates a comment for the post with the specified id using information sent inside of the request body.
 router.post('/:id/comments', (req, res) => {
     //If the request body is missing the text property
     if(!req.body.text) {
@@ -120,7 +123,8 @@ router.post('/:id/comments', (req, res) => {
                 created_at: new Date(),
                 updated_at: new Date()
             }
-            insertComment(newComment).then(comment => {
+            //ERROR: TODO
+            db.insertComment(newComment).then(comment => {
                 res.status(201).json({...newComment, id: comment.id})
             }).catch( _ => {
                 //If there's an error while saving the comment
