@@ -58,6 +58,34 @@ router.get('/:id', (req, res) => {
 
 //Updates the post with the specified id using data from the request body. Returns the modified document, NOT the original.
 router.put('/:id', (req, res) => {
+    console.log(typeof(req.params.id))
+    //If the request body is missing the title or contents property
+    if (!req.body.title || !req.body.contents) {
+        res.status(400).json({ errorMessage: "Please provide title and contents for the post." })
+    }
+    db.findById(parseInt(req.params.id)).then( post => {
+        if (post.length === 0) {
+            //If the post with the specified id is not found
+            res.status(404).json({ message: "The post with the specified ID does not exist." })
+        }
+        //If the post is found and the new information is valid
+        const newPost = {
+            title: req.body.title, 
+            contents: req.body.contents, 
+            created_at: post.created_at, 
+            updated_at: new Date()
+        }
+
+        update(post.id, newPost).then(count => {
+            res.status(200).json({data: newPost})
+        }).catch(_ => {
+            //If there's an error when updating the post
+            res.status(500).json({ error: "The post information could not be modified." })
+        })
+    }
+    ).catch(_ => {
+        res.status(500).json({message: "error finding by id"})
+    })
 
 })
 
@@ -78,31 +106,31 @@ router.post('/:id/comments', (req, res) => {
     //If the request body is missing the text property
     if(!req.body.text) {
         res.status(400).json({ errorMessage: "Please provide text for the comment." })
-    } else {
-        db.findById(req.params.id).then(
-            post => {
-                //If the post with the specified id is not found
-                if (post === []) {
-                    res.status(404).json({ message: "The post with the specified ID does not exist." })
-                }
-                //If the information about the comment is valid
-                const newComment = {
-                    text: req.body.text,
-                    post_id: post.id,
-                    created_at: new Date(),
-                    updated_at: new Date()
-                }
-                insertComment(newComment).then(comment => {
-                    res.status(201).json({...newComment, id: comment.id})
-                }).catch( _ => {
-                    //If there's an error while saving the comment
-                    res.status(500).json({ error: "There was an error while saving the comment to the database" })
-                })
+    } 
+    db.findById(req.params.id).then(
+        post => {
+            //If the post with the specified id is not found
+            if (post.length === 0) {
+                res.status(404).json({ message: "The post with the specified ID does not exist." })
             }
-        ).catch( error => {
-            res.status(500).json({message: "error!", error: error})
-        })
-    }
+            //If the information about the comment is valid
+            const newComment = {
+                text: req.body.text,
+                post_id: post.id,
+                created_at: new Date(),
+                updated_at: new Date()
+            }
+            insertComment(newComment).then(comment => {
+                res.status(201).json({...newComment, id: comment.id})
+            }).catch( _ => {
+                //If there's an error while saving the comment
+                res.status(500).json({ error: "There was an error while saving the comment to the database" })
+            })
+        }
+    ).catch( error => {
+        res.status(500).json({message: "error!", error: error})
+    })
+    
 })
 
 
