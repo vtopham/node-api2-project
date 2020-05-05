@@ -20,21 +20,22 @@ router.post('/', (req, res) => {
     //If the request body is missing the title or contents property
     if (!req.body.title || !req.body.contents) {
         res.status(400).json({ errorMessage: "Please provide title and contents for the post." }) 
-    } else {
-        //If the information about the post is valid
-        const newPost = {
-            title: req.body.title,
-            contents: req.body.contents,
-            created_at: new Date(),
-            updated_at: new Date()
-        }
-        db.insert(newPost).then(response => {
-            res.status(201).json({...newPost, id: response.id})
-        }).catch( _ => {
-            //If there's an error while saving the post
-            res.status(500).json( { error: "There was an error while saving the post to the database" })
-        })
+        return;
+    } 
+    //If the information about the post is valid
+    const newPost = {
+        title: req.body.title,
+        contents: req.body.contents,
+        created_at: new Date(),
+        updated_at: new Date()
     }
+    db.insert(newPost).then(response => {
+        res.status(201).json({...newPost, id: response.id})
+    }).catch( _ => {
+        //If there's an error while saving the post
+        res.status(500).json( { error: "There was an error while saving the post to the database" })
+    })
+    
 })
 
 
@@ -45,8 +46,10 @@ router.get('/:id', (req, res) => {
         //If the post with the specified id is not found:
         if (post.length === 0) {
             res.status(404).json({ message: "The post with the specified ID does not exist." })
+            return;
         }
         res.status(200).json({data: post})
+        return;
     }
     ).catch(_ => {
         //If there's an error in retrieving the post from the database
@@ -99,7 +102,18 @@ router.delete('/:id', (req, res) => {
 
 //Returns an array of all the comment objects associated with the post with the specified id.
 router.get('/:id/comments', (req, res) => {
-    
+    db.findPostComments(req.params.id).then( comments => {
+        //If the post with the specified id is not found:
+        if (comments.length === 0) {
+            res.status(404).json({ message: "The post with the specified ID does not exist." })
+            return;
+        }
+        res.status(200).json({data: comments})
+    }).catch(_ => {
+        //If there's an error in retrieving the comments from the database
+        res.status(500).json({ error: "The comments information could not be retrieved." })
+        
+    })
 
 })
 
@@ -109,26 +123,27 @@ router.post('/:id/comments', (req, res) => {
     //If the request body is missing the text property
     if(!req.body.text) {
         res.status(400).json({ errorMessage: "Please provide text for the comment." })
+        return;
     } 
     db.findById(req.params.id).then(
         post => {
             //If the post with the specified id is not found
             if (post.length === 0) {
                 res.status(404).json({ message: "The post with the specified ID does not exist." })
+                return;
             }
             //If the information about the comment is valid
+            
             const newComment = {
                 text: req.body.text,
-                post_id: post.id,
-                created_at: new Date(),
-                updated_at: new Date()
+                post_id: req.params.id
             }
-            //ERROR: TODO
-            db.insertComment(newComment).then(comment => {
+
+            db.insertComment([newComment]).then(comment => {
                 res.status(201).json({...newComment, id: comment.id})
-            }).catch( _ => {
+            }).catch( error => {
                 //If there's an error while saving the comment
-                res.status(500).json({ error: "There was an error while saving the comment to the database" })
+                res.status(500).json({ error: "There was an error while saving the comment to the database", message: error })
             })
         }
     ).catch( error => {
