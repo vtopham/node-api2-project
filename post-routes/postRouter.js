@@ -40,6 +40,18 @@ router.post('/', (req, res) => {
 
 //Returns the post object with the specified id.
 router.get('/:id', (req, res) => {
+    db.findById(req.params.id).then(post => {
+       
+        //If the post with the specified id is not found:
+        if (post.length === 0) {
+            res.status(404).json({ message: "The post with the specified ID does not exist." })
+        }
+        res.status(200).json({data: post})
+    }
+    ).catch(_ => {
+        //If there's an error in retrieving the post from the database
+        res.status(500).json({ error: "The post information could not be retrieved." })
+    })
 
 })
 
