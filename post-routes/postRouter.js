@@ -97,7 +97,22 @@ router.put('/:id', (req, res) => {
 
 //Removes the post with the specified id and returns the deleted post object. You may need to make additional calls to the database in order to satisfy this requirement.
 router.delete('/:id', (req, res) => {
+    
+    db.remove(req.params.id).then( recordsDeleted => {
+        //If the post with the specified id is not found
+        if (recordsDeleted === 0) {
+            res.status(404).json({ message: "The post with the specified ID does not exist." })
+            return;
+        }
+        res.status(200).json({message: `${recordsDeleted} record has been deleted`})
+    }
+    ).catch(_ => {
+        //If there's an error in removing the post from the database
+        res.status(500).json({ error: "The post could not be removed" })
+    })
+    
 
+    
 })
 
 //Returns an array of all the comment objects associated with the post with the specified id.
